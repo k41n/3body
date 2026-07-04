@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Задача трёх тел — эффект бабочки</title>
+<title>Three-Body Problem — The Butterfly Effect</title>
 <style>
   :root {
     --bg: #06080f;
@@ -111,32 +111,32 @@
 <canvas id="space"></canvas>
 
 <div id="hud" class="panel">
-  <h1>ЗАДАЧА ТРЁХ ТЕЛ</h1>
-  <p>Три звезды близкой массы в хаотическом гравитационном танце. Иногда в систему залетают крошечные астероиды (масса ~10⁻⁶ звёздной).</p>
-  <p><b style="color:var(--text)">Эффект бабочки:</b> полупрозрачные синие «призраки» — точная копия системы, но <i>без</i> астероидов. Следите, как после каждого пролёта астероида реальные звёзды расходятся со своими призраками — сначала на пиксели, потом целиком.</p>
+  <h1>THREE-BODY PROBLEM</h1>
+  <p>Three stars of nearly equal mass in a chaotic gravitational dance. Every now and then a tiny asteroid drifts into the system (mass ~10⁻⁶ of a star).</p>
+  <p><b style="color:var(--text)">The butterfly effect:</b> the translucent blue "ghosts" are an exact copy of the system — but <i>without</i> asteroids. Watch how, after each asteroid flyby, the real stars drift away from their ghosts: first by pixels, then entirely.</p>
   <div class="legend">
-    <div><span style="background:#ffb347"></span>реальные звёзды (с астероидами)</div>
-    <div><span style="background:#4f7cff"></span>призрак-двойник (без возмущений)</div>
-    <div><span style="background:#9fe8a0"></span>астероиды</div>
+    <div><span style="background:#ffb347"></span>real stars (with asteroids)</div>
+    <div><span style="background:#4f7cff"></span>ghost twin (unperturbed)</div>
+    <div><span style="background:#9fe8a0"></span>asteroids</div>
   </div>
 </div>
 
 <div id="stats" class="panel">
-  <div class="row"><b>время симуляции</b><span class="val" id="simTime">0</span></div>
-  <div class="row"><b>астероидов пролетело</b><span class="val" id="astCount">0</span></div>
-  <div class="row"><b>астероидов сейчас</b><span class="val" id="astNow">0</span></div>
-  <div class="row"><b>расхождение с призраком</b><span class="val" id="divNow">0.00</span></div>
-  <h2>лог₁₀ расхождения во времени</h2>
+  <div class="row"><b>simulation time</b><span class="val" id="simTime">0</span></div>
+  <div class="row"><b>asteroids so far</b><span class="val" id="astCount">0</span></div>
+  <div class="row"><b>asteroids now</b><span class="val" id="astNow">0</span></div>
+  <div class="row"><b>divergence from ghost</b><span class="val" id="divNow">0.00</span></div>
+  <h2>log₁₀ divergence over time</h2>
   <canvas id="divergenceCanvas" width="210" height="70"></canvas>
 </div>
 
 <div id="controls" class="panel">
-  <button id="btnPause">⏸ пауза</button>
-  <button id="btnReset" class="secondary">↺ сброс</button>
-  <button id="btnAsteroid" class="secondary">☄ запустить астероид</button>
-  <label><input type="checkbox" id="chkGhost" checked> призрак</label>
-  <label><input type="checkbox" id="chkAuto" checked> авто-астероиды</label>
-  <label>скорость <input type="range" id="rngSpeed" min="1" max="10" value="4"></label>
+  <button id="btnPause">⏸ pause</button>
+  <button id="btnReset" class="secondary">↺ reset</button>
+  <button id="btnAsteroid" class="secondary">☄ launch asteroid</button>
+  <label><input type="checkbox" id="chkGhost" checked> ghost</label>
+  <label><input type="checkbox" id="chkAuto" checked> auto asteroids</label>
+  <label>speed <input type="range" id="rngSpeed" min="1" max="10" value="4"></label>
 </div>
 
 <div id="toast"></div>
@@ -145,19 +145,19 @@
 "use strict";
 
 // ============================================================
-//  Физика: гравитационная задача N тел, интегратор RK4.
-//  Две системы считаются параллельно:
-//    real  — три звезды + астероиды
-//    ghost — те же три звезды, стартовавшие идентично, БЕЗ астероидов
-//  Их расхождение и есть «эффект бабочки».
+//  Physics: gravitational N-body problem, RK4 integrator.
+//  Two systems are simulated in parallel:
+//    real  — three stars + asteroids
+//    ghost — the same three stars, identical start, NO asteroids
+//  Their divergence is the butterfly effect, made visible.
 // ============================================================
 
-const G = 1.0;            // гравитационная постоянная (безразмерная)
-const STAR_MASS = 1.0;    // базовая масса звезды
-const AST_MASS = 1e-6;    // масса астероида — та самая «бабочка»
-const SOFTENING = 0.005;  // сглаживание, чтобы избежать сингулярностей
-const DT = 0.002;         // шаг интегрирования
-const BOUND = 6;          // граница мира (в физических единицах) для трейлов/выброса
+const G = 1.0;            // gravitational constant (dimensionless)
+const STAR_MASS = 1.0;    // base stellar mass
+const AST_MASS = 1e-6;    // asteroid mass — the "butterfly"
+const SOFTENING = 0.005;  // softening length to avoid singularities
+const DT = 0.002;         // integration time step
+const BOUND = 6;          // world boundary (physical units) for spawn/ejection
 
 const canvas = document.getElementById('space');
 const ctx = canvas.getContext('2d');
@@ -175,7 +175,7 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Адаптивный зум: камера плавно отъезжает, если звёзды разлетаются
+// Adaptive zoom: the camera smoothly pulls back when stars fly apart
 function updateCamera() {
   let maxR = 2.2;
   const track = (b) => maxR = Math.max(maxR, Math.hypot(b.x, b.y) + 0.6);
@@ -188,12 +188,12 @@ function updateCamera() {
 const px = x => CX + x * SCALE;
 const py = y => CY + y * SCALE;
 
-// ---------- Тела ----------
+// ---------- Bodies ----------
 function makeBody(x, y, vx, vy, m, isStar) {
   return { x, y, vx, vy, m, isStar, trail: [] };
 }
 
-// Ускорения для массива тел (каждое действует на каждое)
+// Accelerations for an array of bodies (all-pairs gravity)
 function accelerations(bodies) {
   const n = bodies.length;
   const ax = new Float64Array(n), ay = new Float64Array(n);
@@ -213,13 +213,13 @@ function accelerations(bodies) {
   return { ax, ay };
 }
 
-// Один шаг RK4 для системы тел
+// One RK4 step for the system of bodies
 function rk4Step(bodies, dt) {
   const n = bodies.length;
   const s0 = bodies.map(b => [b.x, b.y, b.vx, b.vy]);
 
   function deriv(state) {
-    // временно записываем состояние в тела, чтобы посчитать ускорения
+    // temporarily write the state into bodies to compute accelerations
     for (let i = 0; i < n; i++) {
       bodies[i].x = state[i][0]; bodies[i].y = state[i][1];
       bodies[i].vx = state[i][2]; bodies[i].vy = state[i][3];
@@ -251,7 +251,7 @@ function rk4Step(bodies, dt) {
   }
 }
 
-// ---------- Инициализация ----------
+// ---------- Initialization ----------
 const STAR_COLORS = ['#ffb347', '#ff6b6b', '#ffd93d'];
 const GHOST_COLOR = '#4f7cff';
 const AST_COLOR = '#9fe8a0';
@@ -262,21 +262,21 @@ let divergenceLog = []; // [{t, logD}]
 let paused = false;
 
 function initSystem() {
-  // Квазистабильная конфигурация: три звезды в вершинах треугольника
-  // с орбитальными скоростями + небольшая асимметрия масс и позиций,
-  // чтобы система жила хаотично, но подолгу не разлеталась.
+  // Quasi-stable configuration: three stars at triangle vertices
+  // with orbital velocities plus slight mass/position asymmetry,
+  // so the system stays chaotic but long-lived.
   const R = 1.15;
   const stars = [];
-  const masses = [1.0, 0.98, 1.02]; // «примерно одна масса»
+  const masses = [1.0, 0.98, 1.02]; // "nearly equal mass"
   for (let i = 0; i < 3; i++) {
     const a = i * 2 * Math.PI / 3 + 0.13;
     const x = R * Math.cos(a);
     const y = R * Math.sin(a);
-    // круговая скорость для треугольника Лагранжа: v² = G*M_total / (√3 · R) · ...
+    // near-circular speed for the Lagrange triangle configuration
     const v = Math.sqrt(G * (masses[0] + masses[1] + masses[2]) / (3 * R)) * 0.92;
     stars.push(makeBody(x, y, -v * Math.sin(a), v * Math.cos(a), masses[i], true));
   }
-  // компенсируем импульс центра масс
+  // cancel the center-of-mass momentum
   let Mv = { x: 0, y: 0 }, M = 0;
   stars.forEach(s => { Mv.x += s.m * s.vx; Mv.y += s.m * s.vy; M += s.m; });
   stars.forEach(s => { s.vx -= Mv.x / M; s.vy -= Mv.y / M; });
@@ -287,16 +287,16 @@ function initSystem() {
   simTime = 0;
   asteroidsTotal = 0;
   divergenceLog = [];
-  nextAsteroidAt = 6 + Math.random() * 4; // первый астероид спустя немного времени
+  nextAsteroidAt = 6 + Math.random() * 4; // first asteroid arrives shortly
 }
 
 function spawnAsteroid() {
-  // залетает извне, направлен примерно в область системы
+  // arrives from outside, aimed roughly at the system
   const edgeAngle = Math.random() * 2 * Math.PI;
   const dist = BOUND * 0.95;
   const x = dist * Math.cos(edgeAngle);
   const y = dist * Math.sin(edgeAngle);
-  // цель — случайная точка недалеко от центра масс
+  // target: a random point near the center of mass
   const tx = (Math.random() - 0.5) * 1.6;
   const ty = (Math.random() - 0.5) * 1.6;
   const dx = tx - x, dy = ty - y;
@@ -305,10 +305,10 @@ function spawnAsteroid() {
   const a = makeBody(x, y, dx / len * speed, dy / len * speed, AST_MASS, false);
   asteroids.push(a);
   asteroidsTotal++;
-  showToast('☄ астероид вошёл в систему');
+  showToast('☄ an asteroid entered the system');
 }
 
-// ---------- Расхождение (метрика бабочки) ----------
+// ---------- Divergence (the butterfly metric) ----------
 function divergence() {
   let d2 = 0;
   for (let i = 0; i < 3; i++) {
@@ -319,37 +319,37 @@ function divergence() {
   return Math.sqrt(d2);
 }
 
-// ---------- Шаг симуляции ----------
+// ---------- Simulation step ----------
 function stepSim() {
-  // реальная система: звёзды + астероиды вместе
+  // real system: stars + asteroids together
   const realAll = realStars.concat(asteroids);
   rk4Step(realAll, DT);
-  // призрак: только звёзды
+  // ghost: stars only
   rk4Step(ghostStars, DT);
   simTime += DT;
 
-  // удаляем улетевшие астероиды
+  // remove asteroids that left the system
   for (let i = asteroids.length - 1; i >= 0; i--) {
     const a = asteroids[i];
     if (Math.hypot(a.x, a.y) > BOUND * 1.15) asteroids.splice(i, 1);
   }
 
-  // авто-запуск астероидов
+  // automatic asteroid arrivals
   if (document.getElementById('chkAuto').checked && simTime >= nextAsteroidAt) {
     spawnAsteroid();
     nextAsteroidAt = simTime + 8 + Math.random() * 14;
   }
 
-  // если звёзды разлетелись безнадёжно — мягкий рестарт
+  // if the stars have irrecoverably dispersed — soft restart
   let maxR = 0;
   realStars.forEach(s => maxR = Math.max(maxR, Math.hypot(s.x, s.y)));
   if (maxR > BOUND * 2.2) {
-    showToast('система распалась — перезапуск');
+    showToast('the system fell apart — restarting');
     initSystem();
   }
 }
 
-// ---------- Трейлы ----------
+// ---------- Trails ----------
 const TRAIL_MAX = 700;
 function pushTrails() {
   const record = (b) => {
@@ -361,8 +361,8 @@ function pushTrails() {
   asteroids.forEach(record);
 }
 
-// ---------- Отрисовка ----------
-// Статичный звёздный фон
+// ---------- Rendering ----------
+// Static starfield background
 const bgStars = [];
 for (let i = 0; i < 220; i++) {
   bgStars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.1 + 0.2, a: Math.random() * 0.5 + 0.1 });
@@ -373,7 +373,7 @@ function drawTrail(b, color, alpha) {
   const n = t.length / 2;
   if (n < 2) return;
   ctx.lineWidth = 1;
-  // рисуем сегментами с затуханием
+  // draw in segments with fading alpha
   const seg = 20;
   for (let s = 0; s < n - 1; s += seg) {
     const frac = s / n;
@@ -428,7 +428,7 @@ function drawScene() {
   ctx.fillStyle = '#06080f';
   ctx.fillRect(0, 0, W, H);
 
-  // фон
+  // background
   for (const s of bgStars) {
     ctx.globalAlpha = s.a;
     ctx.fillStyle = '#aebcd8';
@@ -438,12 +438,12 @@ function drawScene() {
 
   const showGhost = document.getElementById('chkGhost').checked;
 
-  // трейлы
+  // trails
   if (showGhost) ghostStars.forEach(g => drawTrail(g, GHOST_COLOR, 0.35));
   realStars.forEach((s, i) => drawTrail(s, STAR_COLORS[i], 0.8));
   asteroids.forEach(a => drawTrail(a, AST_COLOR, 0.5));
 
-  // линии расхождения real ↔ ghost
+  // divergence lines real ↔ ghost
   if (showGhost) {
     ctx.strokeStyle = '#4f7cff';
     ctx.globalAlpha = 0.3;
@@ -459,13 +459,13 @@ function drawScene() {
     ctx.globalAlpha = 1;
   }
 
-  // тела
+  // bodies
   if (showGhost) ghostStars.forEach(g => drawStar(g, GHOST_COLOR, true));
   realStars.forEach((s, i) => drawStar(s, STAR_COLORS[i], false));
   asteroids.forEach(drawAsteroid);
 }
 
-// ---------- График расхождения ----------
+// ---------- Divergence chart ----------
 const divCanvas = document.getElementById('divergenceCanvas');
 const divCtx = divCanvas.getContext('2d');
 function drawDivergencePlot() {
@@ -487,7 +487,7 @@ function drawDivergencePlot() {
     if (i === 0) divCtx.moveTo(x, y); else divCtx.lineTo(x, y);
   }
   divCtx.stroke();
-  // нулевая линия (расхождение = 1 физ. единица)
+  // reference line (divergence = 1 physical unit)
   const y1 = h - ((0 - LOG_MIN) / (LOG_MAX - LOG_MIN)) * h;
   divCtx.strokeStyle = 'rgba(255,179,71,0.35)';
   divCtx.setLineDash([3, 3]);
@@ -507,15 +507,15 @@ function showToast(msg) {
 
 document.getElementById('btnPause').addEventListener('click', (e) => {
   paused = !paused;
-  e.target.textContent = paused ? '▶ пуск' : '⏸ пауза';
+  e.target.textContent = paused ? '▶ play' : '⏸ pause';
 });
 document.getElementById('btnReset').addEventListener('click', () => {
   initSystem();
-  showToast('система перезапущена');
+  showToast('system restarted');
 });
 document.getElementById('btnAsteroid').addEventListener('click', spawnAsteroid);
 
-// клик по холсту — запустить астероид из точки клика к центру
+// canvas click — launch an asteroid from the click point toward the center
 canvas.addEventListener('click', (e) => {
   const x = (e.clientX - CX) / SCALE;
   const y = (e.clientY - CY) / SCALE;
@@ -524,10 +524,10 @@ canvas.addEventListener('click', (e) => {
   const a = makeBody(x, y, -x / len * speed, -y / len * speed, AST_MASS, false);
   asteroids.push(a);
   asteroidsTotal++;
-  showToast('☄ астероид запущен вручную');
+  showToast('☄ asteroid launched manually');
 });
 
-// ---------- Главный цикл ----------
+// ---------- Main loop ----------
 let frameCounter = 0;
 function loop() {
   if (!paused) {
@@ -535,7 +535,7 @@ function loop() {
     for (let s = 0; s < stepsPerFrame; s++) stepSim();
     pushTrails();
 
-    // метрика расхождения (в лог-шкале), пишем не каждый кадр
+    // divergence metric (log scale), recorded every few frames
     frameCounter++;
     if (frameCounter % 6 === 0) {
       const d = divergence();
@@ -548,7 +548,7 @@ function loop() {
   drawScene();
   drawDivergencePlot();
 
-  // статистика
+  // stats
   document.getElementById('simTime').textContent = simTime.toFixed(1);
   document.getElementById('astCount').textContent = asteroidsTotal;
   document.getElementById('astNow').textContent = asteroids.length;

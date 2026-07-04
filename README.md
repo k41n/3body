@@ -6,7 +6,7 @@ Three suns of nearly equal mass locked in a gravitational dance. Every now and t
 
 **[▶ Live demo](https://k41n.github.io/3body/)** — one click, no install, no build step.
 
-![Three stars diverging from their unperturbed ghost twins](screenshot.png)
+![Three stars diverging from their unperturbed ghost twins after asteroid flybys](demo.gif)
 
 ## The trick: a ghost universe
 
